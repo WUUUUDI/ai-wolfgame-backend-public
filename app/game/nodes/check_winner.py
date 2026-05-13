@@ -4,27 +4,27 @@ from app.game.state import GameState
 async def check_winner(state: GameState) -> dict:
     """根据存活玩家判断胜利阵营"""
 
+    alive_ids = state["alive_ids"]
+    if not alive_ids:
+        return {"winner": "平局", "game_over": True}
+
     players = state["players"]
-    alive_role = [r["role"] for r in players if r["is_alive"]]
+    alive_players = [p for p in players if p["id"] in alive_ids]
+    werewolves = [p for p in alive_players if p["role"] == "狼人"]
+    villagers = [p for p in alive_players if p["role"] != "狼人"]
 
-    # print(f"alive:{state['alive_ids']}")
-
-    werewolf_alive = any(r == "狼人" for r in alive_role)
-    villager_alive = any(r in ["村民", "预言家", "女巫"] for r in alive_role)
-
-    # print(f"al{werewolf_alive}, vl{villager_alive}")
-
+    winner = None
     game_over = False
 
-    if not werewolf_alive:
-        winner = "村民"
-        game_over = True
-    elif not villager_alive:
+    # 狼人数量 >= 好人数量 → 狼人胜利
+    if len(werewolves) >= len(villagers):
         winner = "狼人"
         game_over = True
-    else:
-        winner = None
-        game_over = False
+    # 没有狼人 → 好人胜利
+    if len(werewolves) == 0:
+        winner = "村民"
+        game_over = True
+    # 其他情况继续
 
     return {
         "winner": winner,

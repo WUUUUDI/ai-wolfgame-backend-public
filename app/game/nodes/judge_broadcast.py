@@ -13,7 +13,7 @@ async def judge_broadcast(state: GameState) -> dict:
     else:
         content = "游戏继续..."
 
-    msg = PlayerSpeechMessage(player_id="1", role="裁判", content=content)
+    msg = PlayerSpeechMessage(player_id="1001", role="裁判", content=content)
     return {"speeches": [msg]}
 
 async def router_after_broadcast(state: GameState) -> Literal["process_night_role", "process_speech", "prepare_vote", END]:

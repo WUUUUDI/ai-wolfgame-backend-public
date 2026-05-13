@@ -1,9 +1,14 @@
 import asyncio
+import os
 from typing import Literal
+
+from langchain_deepseek import ChatDeepSeek
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
+from openai import api_key
 
+from app.game.nodes.update_memories import update_memories
 from app.game.state import GameState
 from app.game.nodes.init_game import init_game
 from app.game.nodes.judge_broadcast import judge_broadcast, router_after_broadcast
@@ -14,9 +19,7 @@ from app.game.nodes.vote import cast_vote, should_continue_vote
 from app.game.nodes.vote_resolve import vote_resolve
 from app.game.nodes.check_winner import check_winner
 
-# ---------------------------
 # 辅助节点：准备投票队列
-# ---------------------------
 def prepare_vote(state: GameState) -> dict:
     """在白天发言结束后，将存活玩家列表设为投票队列，并清空旧的投票记录"""
     return {
@@ -25,18 +28,14 @@ def prepare_vote(state: GameState) -> dict:
         "give_up_vote_queue": []
     }
 
-# ---------------------------
 # 条件路由：游戏未结束时回到广播，否则结束
-# ---------------------------
-def after_winner(state: GameState) -> Literal["judge_broadcast", END]:
+def after_winner(state: GameState) -> Literal["update_memories", END]:
     if state["game_over"]:
         return END
     else:
-        return "judge_broadcast"
+        return "update_memories"
 
-# ---------------------------
 # 构建图
-# ---------------------------
 graph_builder = StateGraph(GameState)
 
 # 添加所有节点
@@ -49,6 +48,7 @@ graph_builder.add_node("prepare_vote", prepare_vote)
 graph_builder.add_node("cast_vote", cast_vote)
 graph_builder.add_node("vote_resolve", vote_resolve)
 graph_builder.add_node("check_winner", check_winner)
+graph_builder.add_node("update_memories", update_memories)
 
 # 入口：初始化 -> 广播
 graph_builder.add_edge(START, "init_game")
@@ -75,14 +75,7 @@ graph_builder.add_conditional_edges(
     }
 )
 
-graph_builder.add_conditional_edges(
-    "night_resolve",
-    after_night,
-    {
-        "judge_broadcast": "judge_broadcast",
-        END: END
-    }
-)# 夜晚结算后回到广播（白天）
+graph_builder.add_edge("night_resolve", "check_winner")
 
 # 白天发言循环
 graph_builder.add_conditional_edges(
@@ -107,15 +100,17 @@ graph_builder.add_conditional_edges(
 # 投票结算后检查胜负
 graph_builder.add_edge("vote_resolve", "check_winner")
 
-# 胜负判定后：未结束则回到广播（新的一轮），结束则终止
+# 胜负判定后：更新记忆
 graph_builder.add_conditional_edges(
     "check_winner",
     after_winner,
     {
-        "judge_broadcast": "judge_broadcast",
+        "update_memories": "update_memories",
         END: END
     }
 )
+
+graph_builder.add_edge("update_memories", "judge_broadcast")
 
 # ---------------------------
 # 编译与执行

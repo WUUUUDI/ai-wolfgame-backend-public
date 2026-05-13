@@ -21,10 +21,9 @@ async def process_speech(state: GameState) -> Dict:
     # 获取发言内容
     if player["is_human"]:
         # TODO: 使用 interrupt 等待真实玩家输入
-        # 占位处理：返回固定文本
         content = "人类玩家发言（待实现中断）"
     else:
-        ai = AIPlayer()
+        ai = AIPlayer(current_player_id)
         # 传递空 context 或相关上下文
         content = await ai.get_action(state, "speak", {})
 

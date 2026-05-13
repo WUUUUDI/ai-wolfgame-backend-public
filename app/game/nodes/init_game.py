@@ -9,7 +9,7 @@ async def init_game(state: GameState) -> dict:
     if not players:
         # 测试使用：6个玩家
         players = [
-            {"id": f"{i}", "name": f"玩家{i}", "role": "村民", "is_alive": True, "is_human": False, "seat": i} for i in range(1, 7)
+            {"id": f"{i}", "name": f"玩家{i}", "role": "村民", "is_alive": True, "is_human": False, "seat": i, "difficulty": "中等", "strategy": "理性逻辑"} for i in range(1, 7)
         ]
         # 简单随机分配角色
         roles = ["狼人", "狼人", "预言家"] + ["村民"] * 3

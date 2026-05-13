@@ -26,7 +26,7 @@ async def process_night_role(state: GameState) -> Dict[str, Any]:
         if player['is_human']:
             pass
         else:
-            ai = AIPlayer()
+            ai = AIPlayer(player["id"])
             if role == "狼人":
                 context = {"candidates": [pid for pid in state["players"] if pid != player["id"]]}
                 action = await ai.get_action(state, "night_kill", context)

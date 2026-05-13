@@ -38,6 +38,8 @@ class Player(TypedDict):
     is_alive: bool # 是否存活
     is_human: bool # 是真实玩家还是AI
     seat: int # 座位号（固定顺序）
+    difficulty: Optional[AiDifficulty] # AI玩家难度
+    strategy: Optional[AiPlayStrategy] # AI游玩策略
 
 class GameState(TypedDict):
     # 基础信息
@@ -68,3 +70,27 @@ class GameState(TypedDict):
     # 控制
     game_over: bool # 游戏是否已结束
 
+    # 全局局势摘要，简要摘要累积
+    global_memory: Annotated[List[str], operator.add]
+
+    # 短期记忆
+    ai_player_memory: Annotated[dict[str, List[str]], merge_personal_memory] # {"player1": ["是狼人", "你欺骗了xxxx", "把xxx投票出去了"]}
+
+    # 预言家已查记录
+    seer_checks: dict[str, dict[str, str]] # {“player1”: {"p2": "狼人", "p3": "女巫"}}
+
+    # todo 玩家对其他玩家的印象：{player_id: {target_id: {"trust": 0.3, "suspicion": 0.6, "notes": "发言激进"}}}
+    player_impressions: Dict[str, Dict[str, Any]]
+
+    def merge_personal_memory(old: Dict[str, List[str]], new: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        """合并个人记忆，保留最近50条"""
+        result = old.copy()
+        for pid, mems in new.items():
+            if pid in result:
+                result[pid].extend(mems)
+                # 保留最近50条
+                if len(result[pid]) > 50:
+                    result[pid] = result[pid][-50:]
+            else:
+                result[pid] = mems
+        return result

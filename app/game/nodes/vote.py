@@ -24,7 +24,7 @@ async def cast_vote(state: GameState) -> dict:
         # todo interrupt
         pass
     else:
-        ai = AIPlayer()
+        ai = AIPlayer(player["id"])
         target = await ai.get_action(state, "vote", {"candidates": candidates})
 
     return {
