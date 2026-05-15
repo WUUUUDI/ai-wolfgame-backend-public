@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ds_api_key: str = ""
+    ds_base_url: str = "https://api.deepseek.com"
 
     class Config:
         env_file = ".env"
