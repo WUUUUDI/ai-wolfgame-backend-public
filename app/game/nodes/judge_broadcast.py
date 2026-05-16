@@ -1,7 +1,7 @@
 from tkinter import END
 from typing import Literal
 
-from app.game.GameMessages import PlayerSpeechMessage
+from app.game.game_messages import PlayerSpeechMessage
 from app.game.state import GameState
 
 

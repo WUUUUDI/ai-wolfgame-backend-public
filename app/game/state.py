@@ -5,7 +5,7 @@ from langchain_core.messages import BaseMessage
 from pydantic import Field
 from typing_extensions import Annotated
 
-from app.game.GameMessages import PlayerSpeechMessage
+from app.game.game_messages import PlayerSpeechMessage
 
 # 玩家身份类型（支持扩展）
 RoleType = Literal[

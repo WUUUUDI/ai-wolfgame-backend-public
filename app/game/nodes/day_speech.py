@@ -1,7 +1,7 @@
 from typing import Dict, Literal
 from app.game.state import GameState
 from app.game.players.ai_player import AIPlayer
-from app.game.GameMessages import PlayerSpeechMessage
+from app.game.game_messages import PlayerSpeechMessage
 
 async def process_speech(state: GameState) -> Dict:
     """
