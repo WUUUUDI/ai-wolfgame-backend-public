@@ -46,7 +46,7 @@ async def game_websocket(websocket: WebSocket, room_id: str, token: str = Query(
     await manager.connect(room_id, websocket)
 
     try:
-        room = room_manager.create_room(room_id)
+        room = room_manager.get_room(room_id)
         config = room["config"]
         graph = room["graph"]
 

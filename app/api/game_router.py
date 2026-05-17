@@ -1,16 +1,33 @@
+from typing import Optional, List
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from starlette import status
 
 from access import CurrentUser
 from app.game.manager.room_manager import room_manager
+from app.game.state import AiDifficulty, AiPlayStrategy, RoleType
 from app.schemas.common import BizResponse
 
 router = APIRouter(prefix="/game", tags=["game"])
 
-@router.post("/create/{room_id}")
-async def create_room(room_id: str, current_user: CurrentUser):
+class PlayerConfig(BaseModel):
+    is_human: bool = False
+    difficulty: Optional[AiDifficulty] = "中等"
+    strategy: Optional[AiPlayStrategy] = "理性逻辑"
+
+class CreateRoomRequest(BaseModel):
+    players: List[PlayerConfig]
+
+
+@router.post("/room/create")
+async def create_room(
+                      request: CreateRoomRequest,
+                      current_user: CurrentUser):
     """创建游戏房间"""
-    room = room_manager.create_room(room_id)
+    players_config = [p.model_dump() for p in request.players]
+    room = room_manager.create_room(players_config=players_config)
+    room_id = room["room_id"]
     return BizResponse.success(
         data={"room_id": room_id}
     )

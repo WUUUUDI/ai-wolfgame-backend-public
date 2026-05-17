@@ -45,6 +45,7 @@ class GameState(TypedDict):
     # 基础信息
     room_id: str # 房间号（可以线程id，保证各房间号唯一即可）
     players: List[Player] # 玩家列表
+    players_config: List[dict[str, Any]] # 玩家配置列表
     alive_ids: List[str] # 当前存活的玩家列表
     phase: Literal["白天", "夜晚", "投票", "结算", "结束"]
 

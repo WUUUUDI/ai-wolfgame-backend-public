@@ -126,6 +126,7 @@ def get_initial_state() -> GameState:
     return {
         "room_id": "room_001",
         "players": [],
+        "players_config": [],
         "alive_ids": [],
         "phase": "夜晚",
         "night_role_order": [],

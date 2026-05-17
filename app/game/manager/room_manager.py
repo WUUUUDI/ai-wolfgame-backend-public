@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, Optional
 
 from langgraph.checkpoint.memory import MemorySaver
@@ -12,20 +13,24 @@ class RoomManager:
         self.rooms = {}
         self.checkpointer = MemorySaver()
 
-    def create_room(self, room_id: str, players_config: list=None) -> dict:
-        """创建房间，返回房间信息，如果已存在则返回现有房间"""
-        if room_id in self.rooms:
-            return self.rooms[room_id]
+    def room_exists(self, room_id: str) -> bool:
+        return room_id in self.rooms
+
+    def create_room(self, players_config: list=None) -> dict:
+        """生成唯一 room_id 创建房间, 返回房间信息"""
+
+        while True:
+            room_id = str(uuid.uuid4())[:8]  # 取前8位作为短ID，也可用完整UUID
+            if room_id not in self.rooms:
+                break
 
         graph = build_game_graph(checkpointer=self.checkpointer)
         config = {"configurable": {"thread_id": room_id}}
         initial_state = get_initial_state()
         initial_state["room_id"] = room_id
 
-        # todo 玩家配置
         if players_config:
-            # initial_state["players"] = players_config
-            pass
+            initial_state["players_config"] = players_config
 
         room = {
             "room_id": room_id,
