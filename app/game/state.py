@@ -48,6 +48,7 @@ class GameState(TypedDict):
     players_config: List[dict[str, Any]] # 玩家配置列表
     alive_ids: List[str] # 当前存活的玩家列表
     phase: Literal["白天", "夜晚", "投票", "结算", "结束"]
+    available_roles: List[str] # 本局存在的角色
 
     # 夜晚
     night_role_order: List[RoleType] # 夜晚行动顺序
@@ -94,4 +95,15 @@ class GameState(TypedDict):
                     result[pid] = result[pid][-50:]
             else:
                 result[pid] = mems
+        return result
+
+    def merge_night_actions(old: Dict[str, Dict[str, str]], new: Dict[str, Dict[str, str]]) -> Dict[
+        str, Dict[str, str]]:
+        """合并多个角色产生的夜间行动，同一角色的行动字典合并"""
+        result = old.copy()
+        for role, actions in new.items():
+            if role in result:
+                result[role].update(actions)
+            else:
+                result[role] = actions
         return result

@@ -22,13 +22,18 @@ async def cast_vote(state: GameState) -> dict:
 
     if player["is_human"]:
         # todo interrupt
+        target = None
         pass
     else:
         ai = AIPlayer(player["id"])
         target = await ai.get_action(state, "vote", {"candidates": candidates})
 
+    # 获取当前投票，合并
+    current_votes = state.get("votes", {})
+    new_votes = {**current_votes, voter_id: target}
+
     return {
-        "votes": {voter_id: target},
+        "votes": new_votes,
         "wait_to_vote_queue": queue[1:]
     }
 

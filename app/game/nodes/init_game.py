@@ -60,10 +60,12 @@ async def init_game(state: GameState) -> dict:
         night_role_order.append("预言家")
 
     speak_queue = random.sample(alive_ids, len(alive_ids))
+    available_roles = list(set(p["role"] for p in players))
 
     return {
         "players": players,
         "alive_ids": alive_ids,
+        "available_roles": available_roles,
         "night_role_order": night_role_order,
         "current_night_role_idx": 0,
         "night_actions": {},

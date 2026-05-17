@@ -47,6 +47,8 @@ async def game_websocket(websocket: WebSocket, room_id: str, token: str = Query(
 
     try:
         room = room_manager.get_room(room_id)
+        if not room:
+            await manager.send_message(room_id, format_error("Room not found", room_id))
         config = room["config"]
         graph = room["graph"]
 
@@ -68,6 +70,7 @@ async def game_websocket(websocket: WebSocket, room_id: str, token: str = Query(
                         state_after = await graph.aget_state(config)
                         phase = state_after.values.get("phase") if state_after.values else None
                         wrapped = format_game_event(event_name, event_data, phase, room_id)
+                        print(wrapped)
                         await manager.send_message(room_id, wrapped)
 
                         if state_after.tasks and state_after.tasks[0].interrupts:

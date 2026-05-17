@@ -51,9 +51,12 @@ class AIPlayer(BasePlayer):
         speeches = state.get("speeches", [])
         recent_speeches = speeches[-5:] if speeches else None
         speech_text = "\n".join([
-            f"{s.get('player_id', '?')}({s.get('role', '?')})：{s.get('content', '')}"
+            f"{s.get('player_id', '?')}：{s.get('content', '')}"
             for s in recent_speeches
         ])
+
+        # 本局设定的初始所有角色身份
+        available_roles = state.get("available_roles", [])
 
         # 获取额外信息（狼人队友、预言家已验对象）
         extra_info = self._get_role_extra_info(state, myself)
@@ -82,6 +85,9 @@ class AIPlayer(BasePlayer):
         system_prompt = f"""你是玩家{self.id}, 角色是:{role}。你在跟其他的玩家一起游玩狼人杀,总人数为:{len(players)}, 目前存活人数:{len(state["alive_ids"])}。
         你需要展示出的水平是:{difficulty}, 你的游玩策略是:{strategy}
         
+        【本局包含的所有角色身份】
+        {available_roles}
+        
         【最近全局局势摘要】
         {global_text}
         
@@ -92,7 +98,7 @@ class AIPlayer(BasePlayer):
         {extra_info}
         
         【最近发言记录】
-        {recent_speeches}
+        {speech_text}
         
         注意：你的发言和决策一定要根据'决策', '设定难度', '局势', '个人发言'，做出最符合你角色和策略的行动和发言。
 """
@@ -106,7 +112,20 @@ class AIPlayer(BasePlayer):
 
 
         if a_type == "night_kill":
-            user_prompt = f"夜晚阶段, 你的身份是{role}, 请选择要击杀的玩家（只能从列表当中选）。\n候选人:{candidates}\n只能输出玩家ID（从候选人中的元素选择）。"
+            team_votes = context.get("team_vote", {})
+            extra_note = ""
+
+            if team_votes:
+                selections = []
+                for pid, target in team_votes.items():
+                    teammate = next((p for p in players if p["id"] == pid), None)
+                    name = teammate["name"] if teammate else pid
+                    selections.append(f"{name}({pid}) 选择了击杀 {target}")
+                extra_note = "你的队友已经选择了以下目标：\n" + "\n".join(selections) + "\n你可以选择跟随其中任意一个，也可以坚持自己的判断，但是需要保证选出来一定能够出局一个玩家。"
+            else:
+                extra_note = "你是第一个行动的狼人，请自由选择击杀目标。"
+
+            user_prompt = f"夜晚阶段, 你的身份是{role}, 请选择要击杀的玩家（只能从列表当中选）。\n候选人:{candidates}\n{extra_note}\n只能输出玩家ID（从候选人中的元素选择）。"
         elif a_type == "vote":
             user_prompt = f"投票阶段, 请根据局势以及大家的发言以及所选择的决策，从候选人中选出你要投票的玩家ID。\n候选人:{candidates}\n只输出玩家ID。"
         elif a_type == "speak":
@@ -119,6 +138,8 @@ class AIPlayer(BasePlayer):
         ds_model = LLMManager.get_deepseek()
 
         messages = [{"role": "system", "content": system_prompt},{"role": "user", "content": user_prompt}]
+
+        # print(f"[debug], role:{role}, extra_info:{extra_info}, system_prompt:{system_prompt}, user_prompt:{user_prompt}")
 
         # 调用大模型
         try:

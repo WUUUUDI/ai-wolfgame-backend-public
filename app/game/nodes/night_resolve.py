@@ -16,6 +16,7 @@ async def night_resolve(state:GameState) -> dict:
 
     # 获取所有狼人目标的多数
     kill_target = None
+    targets = []
     if werewolf_actions:
         # 取最多投票的目标
         kill_target = None
@@ -25,8 +26,8 @@ async def night_resolve(state:GameState) -> dict:
         top_targets = [tid for tid, cnt in counter.items() if cnt == max_count]
         # 平票不杀
         kill_target = top_targets[0] if len(top_targets) == 1 else None
-    killed = set()
 
+    killed = set()
     if kill_target and kill_target in state["alive_ids"]:
         killed.add(kill_target)
         for p in players:
@@ -36,7 +37,7 @@ async def night_resolve(state:GameState) -> dict:
 
     # 预言家查验结算
     seer_checks = state.get("seer_checks", {})
-    for seer_id, target_id in seer_checks.items():
+    for seer_id, target_id in seer_actions.items():
         target_player = next((p for p in players if p["id"] == target_id), None)
         if target_player:
             real_role = target_player["role"]
@@ -49,6 +50,9 @@ async def night_resolve(state:GameState) -> dict:
     # todo 加入女巫毒药逻辑
 
     new_alive = [pid for pid in state["alive_ids"] if pid not in killed]
+    for player in players:
+        if player["id"] in killed:
+            player["is_alive"] = False # todo 抽离alive更新逻辑
 
     # 白天发言顺序（seat从小到大）
     if new_alive:
@@ -59,6 +63,15 @@ async def night_resolve(state:GameState) -> dict:
     else:
         wait_to_speak_queue = []
 
+    counter = {}
+    top_targets = None
+    print(f"[DEBUG] werewolf_actions: {werewolf_actions}")
+    print(f"[DEBUG] targets: {targets}")
+    print(f"[DEBUG] counter: {counter}")
+    print(f"[DEBUG] top_targets: {top_targets}, kill_target: {kill_target}")
+    print(f"[DEBUG] alive_ids: {state['alive_ids']}")
+    print(f"[DEBUG] kill_target in alive_ids: {kill_target in state['alive_ids']}")
+
     return {
         "killed_tonight": killed,
         "alive_ids": new_alive,
@@ -68,7 +81,8 @@ async def night_resolve(state:GameState) -> dict:
         "seer_actions": seer_actions,
         "current_night_role_idx": 0,
         # 准备白天发言队列（存活玩家随机顺序）
-        "wait_to_speak_queue": wait_to_speak_queue
+        "wait_to_speak_queue": wait_to_speak_queue,
+        "players": players,
     }
 
 async def after_night(state: GameState) -> Literal["check_winner", END]:

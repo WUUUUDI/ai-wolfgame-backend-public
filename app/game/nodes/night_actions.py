@@ -1,3 +1,4 @@
+import random
 from typing import Dict, Any, Literal
 
 from app.game.players.ai_player import AIPlayer
@@ -21,6 +22,8 @@ async def process_night_role(state: GameState) -> Dict[str, Any]:
     # 获取该角色类型的存活玩家
     players_of_role = [p for p in state['players'] if p['role'] == role and p['is_alive']]
     actions = {}
+    # 当前相同角色已做出的行动（用于团队协作）
+    current_team_actions = {}
 
     for player in players_of_role:
         if player['is_human']:
@@ -28,19 +31,33 @@ async def process_night_role(state: GameState) -> Dict[str, Any]:
         else:
             ai = AIPlayer(player["id"])
             if role == "狼人":
-                context = {"candidates": [pid for pid in state["players"] if pid != player["id"]]}
+                # todo 后续狼人可以在夜晚沟通决策
+                candidates = [pid for pid in state["alive_ids"] if pid != player["id"]]
+                random.shuffle(candidates)
+                context = {
+                    "candidates": candidates,
+                    "team_vote": current_team_actions # 队友已选目标
+                }
                 action = await ai.get_action(state, "night_kill", context)
+
+                if action:
+                    current_team_actions[player["id"]] = action
             elif role == "预言家":
-                context = {"candidates": state["alive_ids"]}
+                candidates = state["alive_ids"]
+                random.shuffle(candidates)
+                context = {"candidates": candidates}
                 action = await ai.get_action(state, "seer_check", context)
             else:
                 action = None
         if action is not None:
             actions[player["id"]] = action
 
-    # Todo 为了简单，暂时返回全部
+    current_night_actions = state.get("night_actions", {})
+    # 合并新actions
+    merged_actions = {**current_night_actions, role: actions}
+
     return {
-        "night_actions": {role: actions},
+        "night_actions": merged_actions,
         "current_night_role_idx": role_idx + 1  # 递增索引
     }
 

@@ -66,7 +66,7 @@ async def update_memories(state: GameState) -> Dict[str, Any]:
             memory_entry = f"我是{role}, 本轮无事发生"
         personal_updates[pid] = [memory_entry]
 
-        return {
-            "global_summary": [global_summary],
-            "ai_player_memory": personal_updates
-        }
+    return {
+        "global_summary": [global_summary],
+        "ai_player_memory": personal_updates
+    }
