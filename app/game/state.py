@@ -84,6 +84,19 @@ class GameState(TypedDict):
     # todo 玩家对其他玩家的印象：{player_id: {target_id: {"trust": 0.3, "suspicion": 0.6, "notes": "发言激进"}}}
     player_impressions: Dict[str, Dict[str, Any]]
 
+    # 女巫相关
+    witch_has_antidote: bool # 解药是否还在
+    witch_has_poison: bool # 毒药是否还在
+    pending_wolf_kill: Optional[str] # 临时存储狼人击杀目标（供女巫看）
+
+    # 守卫相关
+    guard_protected_target: Optional[str] # 这轮守护的目标
+    last_guard_target: Optional[str] # 上一轮守护的目标（禁止连续护同一人）
+
+    # 猎人相关
+    hunter_has_shot: bool # 猎人是否开过枪
+
+
     def merge_personal_memory(old: Dict[str, List[str]], new: Dict[str, List[str]]) -> Dict[str, List[str]]:
         """合并个人记忆，保留最近50条"""
         result = old.copy()

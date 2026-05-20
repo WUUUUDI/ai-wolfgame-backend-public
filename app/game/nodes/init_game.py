@@ -3,19 +3,40 @@ import random
 from app.game.state import GameState, Player
 
 
+def assign_roles(players_count: int) -> list:
+    """
+        根据玩家数量分配角色（狼人:神职:平民 = 1:1:1）
+        支持人数: 6, 9, 12
+        神职角色池: 预言家、女巫、守卫、猎人 (按顺序取)
+        """
+    if players_count not in [6, 9, 12]:
+        raise ValueError(f"Unsupported player count: {players_count}. Only 6, 9, 12 are allowed.")
+
+    faction_size = players_count // 3
+    werewolves = ["狼人"] * faction_size
+
+    # 神职角色列表
+    all_roles = ["预言家", "女巫", "守卫", "猎人"]
+    # 取前 faction_size 个作为本局神职
+    special_roles = all_roles[:faction_size]
+    # 如果神职数量不足，补齐村民（正常应该相等，这里留作安全）
+    while len(special_roles) < faction_size:
+        special_roles.append("村民")
+    # 平民数量 = faction_size
+    villagers = ["村民"] * faction_size
+
+    roles = werewolves + special_roles + villagers
+    random.shuffle(roles)
+    return roles
+
 async def init_game(state: GameState) -> dict:
     """根据玩家配置初始化游戏：分配角色、发言顺序、夜晚行动顺序等"""
     players_config = state.get("players_config")
+    roles = []
 
     if players_config:
         total = len(players_config)
-        roles_pool = []
-        # 狼人数 = 总人数 // 3 或者2
-        werewolf_count = max(2, total // 3)
-        roles_pool.extend(["狼人"] * werewolf_count)
-        roles_pool.append("预言家")
-        roles_pool.extend(["村民"] * (total - werewolf_count - 1))
-        random.shuffle(roles_pool)
+        roles = assign_roles(total)
 
         # 根据配置构建Player对象
         players = []
@@ -25,7 +46,7 @@ async def init_game(state: GameState) -> dict:
             player = Player(
                 id = player_id,
                 name = player_name,
-                role = roles_pool[idx],
+                role = roles[idx],
                 is_alive = True,
                 is_human = cfg.get("is_human", False),
                 seat = idx,
@@ -36,8 +57,6 @@ async def init_game(state: GameState) -> dict:
     else:
         # 默认生成6个AI玩家
         players = []
-        roles = ["狼人", "狼人", "预言家"] + ["村民"] * 3
-        random.shuffle(roles)
         for i in range(1, 7):
             players.append(Player(
                 id=str(i),
@@ -53,11 +72,15 @@ async def init_game(state: GameState) -> dict:
     alive_ids = [p["id"] for p in players if p["is_alive"]]
     night_role_order = []
 
-    # 生成角色夜晚行动顺序（暂定狼人、预言家）
+    # 生成角色夜晚行动顺序
     if any(p["role"] == "狼人" for p in players):
         night_role_order.append("狼人")
+    if any(p["role"] == "女巫" for p in players):
+        night_role_order.append("女巫")
     if any(p["role"] == "预言家" for p in players):
         night_role_order.append("预言家")
+    if any(p["role"] == "守卫" for p in players):
+        night_role_order.append("守卫")
 
     speak_queue = random.sample(alive_ids, len(alive_ids))
     available_roles = list(set(p["role"] for p in players))
@@ -79,5 +102,11 @@ async def init_game(state: GameState) -> dict:
         "give_up_vote_queue": [],
         "killed_tonight": set(),
         "voted_out": "",
+        "witch_has_antidote": True,
+        "witch_has_poison": True,
+        "pending_wolf_kill": None,
+        "guard_protected_target": None,
+        "last_guard_target": None,
+        "hunter_has_shot": False
     }
 

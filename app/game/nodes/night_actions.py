@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Counter
 
 from app.game.players.ai_player import AIPlayer
 from app.game.state import GameState
@@ -43,10 +43,28 @@ async def process_night_role(state: GameState) -> Dict[str, Any]:
                 if action:
                     current_team_actions[player["id"]] = action
             elif role == "预言家":
-                candidates = state["alive_ids"]
+                candidates = [pid for pid in state["alive_ids"] if pid != player["id"]]
                 random.shuffle(candidates)
                 context = {"candidates": candidates}
                 action = await ai.get_action(state, "seer_check", context)
+            elif role == "女巫":
+                candidates = [pid for pid in state["alive_ids"] if pid != player["id"]]
+                random.shuffle(candidates)
+                context = {
+                    "candidates": candidates,
+                    "witch_has_antidote": state["witch_has_antidote"],
+                    "witch_has_poison": state["witch_has_poison"],
+                    "wolf_target": state["pending_wolf_kill"]
+                }
+                action = await ai.get_action(state, "witch_action", context)
+            elif role == "守卫":
+                candidates = state["alive_ids"]
+                random.shuffle(candidates)
+                context = {
+                    "candidates": candidates,
+                    "last_guard_target": state.get("last_guard_target")
+                }
+                action = await ai.get_action(state, "guard_action", context)
             else:
                 action = None
         if action is not None:
@@ -56,9 +74,20 @@ async def process_night_role(state: GameState) -> Dict[str, Any]:
     # 合并新actions
     merged_actions = {**current_night_actions, role: actions}
 
+    # 如果是狼人，存下临时目标
+    pending_wolf_kill = None
+    if role == "狼人" and actions:
+        targets = list(actions.values())
+        counter = Counter(targets)
+        max_count = max(counter.values())
+        top_targets = [tid for tid, cnt in counter.items() if cnt == max_count]
+        pending = top_targets[0] if len(top_targets) == 1 else None
+        pending_wolf_kill = pending
+
     return {
         "night_actions": merged_actions,
-        "current_night_role_idx": role_idx + 1  # 递增索引
+        "current_night_role_idx": role_idx + 1,  # 递增索引
+        "pending_wolf_kill": pending_wolf_kill
     }
 
 async def should_continue_night(state: GameState) -> Literal["process_night_role", "night_resolve"]:

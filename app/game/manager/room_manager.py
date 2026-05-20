@@ -16,11 +16,16 @@ class RoomManager:
     def room_exists(self, room_id: str) -> bool:
         return room_id in self.rooms
 
-    def create_room(self, players_config: list=None) -> dict:
+    def create_room(self, players_config: list = None) -> dict:
         """生成唯一 room_id 创建房间, 返回房间信息"""
+        # 校验玩家人数
+        if players_config is not None:
+            num_players = len(players_config)
+            if num_players not in [6, 9, 12]:
+                raise ValueError(f"Unsupported number of players: {num_players}. Only 6, 9, 12 are allowed.")
 
         while True:
-            room_id = str(uuid.uuid4())[:8]  # 取前8位作为短ID，也可用完整UUID
+            room_id = str(uuid.uuid4())[:8]
             if room_id not in self.rooms:
                 break
 
@@ -37,8 +42,8 @@ class RoomManager:
             "graph": graph,
             "config": config,
             "state": initial_state,
-            "task": None, # 占位（后台任务）
-            "websocket": None # 存储当前房间的ws连接
+            "task": None,
+            "websocket": None
         }
 
         self.rooms[room_id] = room
@@ -46,11 +51,9 @@ class RoomManager:
         return room
 
     async def get_current_state(self, room_id: str) -> Optional[GameState]:
-        """从 checkpoint 中获取最新的状态"""
         room = self.rooms.get(room_id)
         if not room:
             return None
-        # 使用 aget_state 读取最新状态（包含所有历史）
         state = await room["graph"].aget_state(room["config"])
         return state.values if state else None
 
@@ -58,7 +61,3 @@ class RoomManager:
         return self.rooms.get(room_id)
 
 room_manager = RoomManager()
-
-
-
-

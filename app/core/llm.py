@@ -17,7 +17,7 @@ class LLMManager:
         if cls.ds_name not in cls._instances:
             cls._instances[cls.ds_name] = ChatDeepSeek(
                 model="deepseek-chat",
-                temperature=0.4,
+                temperature=0.75,
                 api_key=os.getenv("DS_API_KEY"),
                 base_url=os.getenv("DS_BASE_URL")
             )
